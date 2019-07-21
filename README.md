@@ -55,11 +55,82 @@ up to date.
 C. The class can be used as java agent, to add optional
 reporting output to existing, unmodified applications.
 
+Example of use as a java agent:
+----
 An exmple of using HeapUseWatcher as a java agent (it is used to
 monitor heap use and live set in a [HeapFragger](https://github.com/giltene/HeapFragger)
 run. HeapFragger which is a simple active excercizer of the heap and
 presents a nice moving target for HeapUseWatcher to track):
 
+````
 % java -Xmx1500m -XX:+UseG1GC -javaagent:HeapUseWatcher.jar="-r 1000" -jar HeapFragger.jar -a 3000 -s 500
+````
 
-See the class JavaDoc for org.heaputils.HiccupUseWatcher for use cases A and B above.
+
+Example programmatic use:
+-----
+
+####As a thread (doing it's own model updates in the background):
+````
+import org.heaputils.HeapUseWatcher;
+...
+````
+
+````
+
+watcher = new HeapUseWatcher();
+watcher.start();
+// Watcher now runs in the background and updates its live set model,
+// as well as refresging max available, and current use on a regular
+// basis (default every 1 sec).
+...
+````
+
+````
+...
+// At some point later, e.g. in some "every 2 minute polling point":
+long liveSet = watcher.getEstimatedLiveSet();
+long currentUsed = watcher.getCurrentUsed();
+long maxAvalaible = watcher.getMaxAvailable();
+
+// And, for example. act on these values:
+if (((double) liveSet)/maxAvalaible > triggeringThreasholdFraction) {
+    doWhatYouNeedToDo();
+}
+````
+
+####As a class (nothing running independently), and regular model update
+calls are made by someone else:
+
+````
+import org.heaputils.HeapUseWatcher;
+...
+````
+
+````
+
+model = new HeapUseWatcher.NonEphemeralHeapUseModel();
+model.updateModel();
+...
+````
+
+Somewhere in the program a periodic task needs to be regularly updating the model
+(e.g. once per second or so is usually good enough):
+
+````
+...
+model.updateModel();
+````
+
+And wherever you need to observe the heap use:
+````
+...
+// At some point later, e.g. in some "every 2 minute polling point":
+long liveSet = model.getEstimatedLiveSet();
+long currentUsed = model.getCurrentUsed();
+long maxAvalaible = model.getMaxAvailable();
+
+// And, for example. act on these values:
+if (((double) liveSet)/maxAvalaible > triggeringThreasholdFraction) {
+    doWhatYouNeedToDo();
+}
