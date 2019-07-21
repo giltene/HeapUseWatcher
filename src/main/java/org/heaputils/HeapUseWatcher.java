@@ -136,6 +136,22 @@ public class HeapUseWatcher extends Thread {
             }
         }
 
+        /**
+         * get the noise filtering level used in estimating live set
+         * @return the noise filtering level, in MB
+         */
+        public double getNoiseFilteringLevelInMB() {
+            return noiseFilteringLevelInBytes / MB;
+        }
+
+        /**
+         * set the the noise filtering level used in estimating live set
+         * @param noiseFilteringLevelInMB the noise filtering level, in MB
+         */
+        public void setNoiseFilteringLevelInMB(double noiseFilteringLevelInMB) {
+            this.noiseFilteringLevelInBytes = (long) (noiseFilteringLevelInMB * MB);
+        }
+
         private long noiseFilteringLevelInBytes;
 
         private MemoryPoolMXBean oldGenBean;
@@ -160,9 +176,9 @@ public class HeapUseWatcher extends Thread {
         }
 
         /**
-         * @return the maximum allowed use of the oldest generation, in bytes.
+         * @return the maximum available capacity of the oldest generation, in bytes.
          */
-        public long getMaxAllowed() {
+        public long getMaxAvailable() {
             return maxAllowed;
         }
 
@@ -201,23 +217,32 @@ public class HeapUseWatcher extends Thread {
 
     private final NonEphemeralHeapUseModel nonEphemeralHeapUseModel;
 
+    /**
+     * @return an estimate of the non-ephemeral live set, in bytes.
+     */
     public long getEstimatedLiveSet() {
         return nonEphemeralHeapUseModel.getEstimatedLiveSet();
     }
 
+    /**
+     * @return the current use level of the oldest generation, in bytes.
+     */
     public long getCurrentUsed() {
         return nonEphemeralHeapUseModel.getCurrentUsed();
     }
 
-    public long getMaxAllowed() {
-        return nonEphemeralHeapUseModel.getMaxAllowed();
+    /**
+     * @return the maximum available capacity of the oldest generation, in bytes.
+     */
+    public long getMaxAvailable() {
+        return nonEphemeralHeapUseModel.getMaxAvailable();
     }
 
     private final HeapUseWatcherConfiguration config;
 
-    private final PrintStream log;
+    private PrintStream log;
 
-    private class HeapUseWatcherConfiguration {
+    private static class HeapUseWatcherConfiguration {
         double noiseFilteringLevelInMB = 10.0;
         double pollingIntervalMsec = 1000.0;
         double reportingIntervalMsec = 0.0;
@@ -282,37 +307,109 @@ public class HeapUseWatcher extends Thread {
         }
     }
 
-    public HeapUseWatcher(final String[] args) throws FileNotFoundException {
+    private HeapUseWatcher(HeapUseWatcherConfiguration config) {
         this.setName("HeapUseWatcher");
-        config = new HeapUseWatcherConfiguration(args);
+        this.config = config;
         nonEphemeralHeapUseModel = new NonEphemeralHeapUseModel(config.noiseFilteringLevelInMB);
-        log = (config.logFileName != null) ?
-                new PrintStream(new FileOutputStream(config.logFileName), false) :
-                System.out;
         this.setDaemon(true);
+        log = System.out;
     }
 
-    public HeapUseWatcher() throws FileNotFoundException {
-        this(new String[] {});
+    /**
+     * Constructs a HeapUseWatcher using command line argument strings
+     *
+     * Valid arguments include:
+     * [-v] [-i pollingIntervalMsec] [-r reportingIntervalMsec]
+     * [-e noiseFilteringLevelInMB] [-l logFileName]
+     *
+     * @param args  argument strings in command line arguments form
+     * @throws FileNotFoundException
+     */
+    public HeapUseWatcher(final String[] args) throws FileNotFoundException {
+        this(new HeapUseWatcherConfiguration(args));
+        if (config.logFileName != null) {
+            log = new PrintStream(new FileOutputStream(config.logFileName), false);
+        }
+    }
+
+    /**
+     * Constructs a HeapUseWatcher using default parameters.
+     * @throws FileNotFoundException
+     */
+    public HeapUseWatcher() {
+        this(new HeapUseWatcherConfiguration(new String[]{}));
+    }
+
+    /**
+     * Get the model update polling interval
+     * @return the polling interval in milliseconds
+     */
+    public long getPollingIntervalMsec() {
+        return (long) config.pollingIntervalMsec;
+    }
+
+    /**
+     * Set the model update polling interval
+     * @param pollingIntervalMsec polling interval in milliseconds
+     */
+    public void setPollingIntervalMsec(long pollingIntervalMsec) {
+        config.pollingIntervalMsec = pollingIntervalMsec;
+    }
+
+    /**
+     * Get the output reporting interval (0 means no output reporting)
+     * @return the reporting interval in milliseconds
+     */
+    public long getReportingIntervalMsec() {
+        return (long) config.reportingIntervalMsec;
+    }
+
+    /**
+     * Set the output reporting interval (0 means no output reporting)
+     * @param reportingIntervalMsec reporting interval in milliseconds
+     */
+    public void setReportingIntervalMsec(long reportingIntervalMsec) {
+        config.reportingIntervalMsec = reportingIntervalMsec;
     }
 
 
+    /**
+     * get the noise filtering level used in estimating live set
+     * @return the noise filtering level, in MB
+     */
+    public double getNoiseFilteringLevelInMB() {
+        return nonEphemeralHeapUseModel.getNoiseFilteringLevelInMB();
+    }
+
+    /**
+     * set the the noise filtering level used in estimating live set
+     * @param noiseFilteringLevelInMB the noise filtering level, in MB
+     */
+    public void setNoiseFilteringLevelInMB(double noiseFilteringLevelInMB) {
+        config.noiseFilteringLevelInMB = noiseFilteringLevelInMB;
+        nonEphemeralHeapUseModel.setNoiseFilteringLevelInMB(noiseFilteringLevelInMB);
+    }
 
     private volatile boolean doRun = true;
 
+    /**
+     * Cause HeapUseWatcher thread to exit (asynchronously, at some point in the near future).
+     */
     public void terminate() {
         doRun = false;
     }
 
     static private final double GB = 1024.0 * 1024.0 * 1024.0;
 
+    @Override
     public void run() {
-        final long pollingIntervalNsec = (long) (config.pollingIntervalMsec * 1000L * 1000L);
         try {
 
             long nextReportingTime = 0;
 
             while (doRun) {
+                final long pollingIntervalNsec = (long) (config.pollingIntervalMsec * 1000L * 1000L);
+
                 if (pollingIntervalNsec != 0) {
                     TimeUnit.NANOSECONDS.sleep(pollingIntervalNsec);
                 }
@@ -322,7 +419,7 @@ public class HeapUseWatcher extends Thread {
                 long now = System.currentTimeMillis();
                 if ((config.reportingIntervalMsec != 0) && (now >= nextReportingTime)) {
                     log.printf("CurrentUsed = %.3fGB, MaxAllowed = %.3fGB, EstimatedLiveSet = %.3fGB\n",
-                            getCurrentUsed()/GB, getMaxAllowed()/GB, getEstimatedLiveSet()/GB);
+                            getCurrentUsed()/GB, getMaxAvailable()/GB, getEstimatedLiveSet()/GB);
                     nextReportingTime = now + (long)config.reportingIntervalMsec;
                 }
             }

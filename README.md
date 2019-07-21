@@ -54,3 +54,12 @@ up to date.
 
 C. The class can be used as java agent, to add optional
 reporting output to existing, unmodified applications.
+
+An exmple of using HeapUseWatcher as a java agent (it is used to
+monitor heap use and live set in a [HeapFragger](https://github.com/giltene/HeapFragger)
+run. HeapFragger which is a simple active excercizer of the heap and
+presents a nice moving target for HeapUseWatcher to track):
+
+% java -Xmx1500m -XX:+UseG1GC -javaagent:HeapUseWatcher.jar="-r 1000" -jar HeapFragger.jar -a 3000 -s 500
+
+See the class JavaDoc for org.heaputils.HiccupUseWatcher for use cases A and B above.
