@@ -70,7 +70,7 @@ presents a nice moving target for HeapUseWatcher to track):
 Example programmatic use:
 -----
 
-####As a thread (doing it's own model updates in the background):
+#### As a thread (doing it's own model updates in the background):
 ````
 import org.heaputils.HeapUseWatcher;
 ...
@@ -99,7 +99,7 @@ if (((double) liveSet)/maxAvalaible > triggeringThreasholdFraction) {
 }
 ````
 
-####As a class (nothing running independently), and regular model update
+#### As a class (nothing running independently), and regular model update
 calls are made by someone else:
 
 ````
