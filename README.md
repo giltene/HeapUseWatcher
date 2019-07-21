@@ -99,8 +99,7 @@ if (((double) liveSet)/maxAvalaible > triggeringThreasholdFraction) {
 }
 ````
 
-#### As a class (nothing running independently), and regular model update
-calls are made by someone else:
+#### As a class (nothing running independently), and regular model update calls are made by someone else:
 
 ````
 import org.heaputils.HeapUseWatcher;
