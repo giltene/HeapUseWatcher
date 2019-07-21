@@ -1,0 +1,12 @@
+target
+.idea
+gh-pages
+.classpath
+.project
+.settings
+release.properties
+pom.xml.releaseBackup
+release-pom.xml
+*.iml
+.DS_Store
+build
