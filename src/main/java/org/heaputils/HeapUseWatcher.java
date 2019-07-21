@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
  * Reasoning: Any memory use in other, younger generations, regardless of their shapes and
  * parts, is temporary, and any non-ephemeral objects that reside there will eventually get
  * promoted to the oldest generation and be counted. While it is possible to temporarily
- * miss such objects temporarily by ignoring the younger generations, their impact on the
+ * miss such objects by ignoring the younger generations, their impact on the
  * oldest generation will eventually show up.
  *
  * Ignoring the promotion of yet-to-be-promoted objects (when considering the oldest
@@ -43,9 +43,9 @@ import java.util.concurrent.TimeUnit;
  * remains available.
  *
  * Live set estimation:
- * Due to the current limitations of the spec'ed memory management beans available in Java
- * SE (up to and including Java SE 13), there is no current way to establish an estimate
- * of the "live set" in the oldest generation without use of platform-specific (non-spec'ed)
+ * Due to the current limitations of the spec'ed memory management bean APIs available in Java
+ * SE (up to and including Java SE 13), there is no current way to directly establish
+ * the "live set" in the oldest generation without use of platform-specific (non-spec'ed)
  * MXBeans, which provide access to information about use levels before and after collection
  * events. While using such MXBeans does provide additional and better insight into live-set
  * levels, a portable approximation of the same can be achieved by watching the current use
