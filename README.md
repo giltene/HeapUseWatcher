@@ -1,7 +1,7 @@
 HeapUseWatcher
 ===========
 
-A simple tracker of the non-ephemeral heap use and live set levels, which may be useful
+A simple tracker of non-ephemeral heap use and live set levels, which may be useful
 for making application logic decisions that react to heap occupancy (in e.g. choosing
 when and how much application-managed in-memory cached contents to keep or evict).
 
@@ -52,5 +52,5 @@ B. One can directly use HeapUseWatcher.NonEphemeralHeapUseModel
 and call its updateModel() method periodically to keep the model
 up to date.
 
-C. The class can be used as java agent, and add optional
+C. The class can be used as java agent, to add optional
 reporting output to existing, unmodified applications.
