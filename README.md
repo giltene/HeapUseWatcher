@@ -59,7 +59,7 @@ B. One can directly use HeapUseWatcher.NonEphemeralHeapUseModel
 and call its updateModel() method periodically to keep the model
 up to date.
 
-C. The jar file can be used as java agent, to add optional
+C. The jar file can be used as a java agent, to add optional
 reporting output to existing, unmodified applications.
 
 Example of use as a java agent:
@@ -80,7 +80,7 @@ Example programmatic use:
 
 #### As a thread (doing it's own model updates in the background):
 ````
-import org.heaputils.HeapUseWatcher;
+import org.heaputils.heapusewatcher.HeapUseWatcher;
 ...
 ````
 
@@ -110,7 +110,7 @@ if (((double) liveSet)/maxAvalaible > triggeringThreasholdFraction) {
 #### As a class (nothing running independently), and regular model update calls are made by someone else:
 
 ````
-import org.heaputils.HeapUseWatcher;
+import org.heaputils.heapusewatcher.HeapUseWatcher;
 ...
 ````
 
@@ -141,3 +141,4 @@ long maxAvalaible = model.getMaxAvailable();
 if (((double) liveSet)/maxAvalaible > triggeringThreasholdFraction) {
     doWhatYouNeedToDo();
 }
+````

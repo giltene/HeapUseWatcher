@@ -1,4 +1,4 @@
-package org.heaputils;
+package org.heaputils.heapusewatcher;
 
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -11,28 +11,27 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- *
  * A simple tracker of non-ephemeral heap use and live set levels, which may be useful
  * for making application logic decisions that react to heap occupancy (in e.g. choosing
  * when and how much application-managed in-memory cached contents to keep or evict).
- *
+ * <p>
  * This tracker leverages a trivially simple observation: In any collector, generational
  * or not, the stable set of actually live objects will eventually make it into the oldest
  * generation. We focus our reporting on the oldest generation, and completely ignore
  * all other use levels and activity.
- *
+ * </p><p>
  * Reasoning: Any memory use in other, younger generations, regardless of their shapes and
  * parts, is temporary, and any non-ephemeral objects that reside there will eventually get
  * promoted to the oldest generation and be counted. While it is possible to temporarily
  * miss such objects by ignoring the younger generations, their impact on the
  * oldest generation will eventually show up.
- *
+ * </p><p>
  * Ignoring the promotion of yet-to-be-promoted objects (when considering the oldest
  * generation use against the maximum capacity of that same oldest generation) is logically
  * equivalent to ignoring the allocations of yet-to-be-instantiated objects in the heap
  * as a whole. It is simply an admission that we cannot tell what the future might hold,
  * so we don't count it until it happens.
- *
+ * </p><p>
  * Establishing the current use level (as opposed to the live set) in the oldest
  * generation is a relatively simple thing. But for many purposes, estimation of the
  * live set would be much more useful. Making logic choices based purely on the
@@ -41,7 +40,7 @@ import java.util.concurrent.TimeUnit;
  * to unwanted behavior, as logic may (and will) conservatively react to perceived
  * use levels that are not real, and indicate a "full or nearly full" heap when
  * plenty of (not yet reclaimed) room remains available.
- *
+ * </p><p>
  * Live set estimation:
  * Due to the current limitations of the spec'ed memory management bean APIs available
  * in Java SE (up to and including Java SE 13), there is no current way to use those
@@ -52,51 +51,53 @@ import java.util.concurrent.TimeUnit;
  * G1GC after-collection usage is reported after every incremental mixed collection
  * step, and not for the Oldgen as a whole, so it usually does not represent the
  * live set).
- *
+ * </p><p>
  * A portable, collector-independent approximation of the live set can be achieved
  * by watching the current use levels in the oldest generation, and reporting the
  * most recent local minima observed as live set estimations [A local minimum in
  * this context is the lowest level observed between two other, higher levels, with
  * some simple filtering applied to avoid noise]. That's basically the simple thing
  * that HeapUseWatcher does.
- *
+ * </p><p>
  * The HeapUseWatcher jar and class provides multiple forms of use:
- *
+ * </p><p>
  * A. The runnable HeapUseWatcher class can be
  * launched and started as a thread, which will independently
  * maintain an updated model of the non-ephemeral heap use.
- *
+ * </p><p>
  * B. One can directly use HeapUseWatcher.NonEphemeralHeapUseModel
  * and call its updateModel() method periodically to keep the model
  * up to date.
- *
- * C. The jar file can be used as java agent, to add optional
+ * </p><p>
+ * C. The jar file can be used as a java agent, to add optional
  * reporting output to existing, unmodified applications.
+ * </p>
  */
 
 public class HeapUseWatcher extends Thread {
 
     /**
      * A model of the stable (non-ephemeral, non-temporary) use of the heap.
-     *
+     * <p>
      * This model tracks the current use, maximum allowed, and estimated live
      * set in the heap, on the assumption tha the oldest generation in the heap
      * eventually accumulates all non-ephemeral objects, and that it's use and
      * estimated live may be potentially useful in making program logic choices.
-     *
+     * </p><p>
      * Current usage and maximum capacity are reported directly from the
      * associated stats oldest generation. The estimated live set level is
      * is modeled by looking for the most recent established local minimum
      * in the usage level of the oldest generation. I.e. a usage level
      * that was lower than prior usage levels AND lower than later usage
      * levels.
-     *
+     * </p><p>
      * This model requires regular periodic calls to the updateModel()
      * method in order to work. The model update intervals should be
      * chosen to be short enough to be a fraction of the typical
      * start-to-start interval between oldest-generation collections.
      * In most systems, an update interval of 1 second or less would
      * comfortably suffice.
+     * </p>
      */
     public static class NonEphemeralHeapUseModel {
 
@@ -169,21 +170,24 @@ public class HeapUseWatcher extends Thread {
         private long localMinimum = 0;
 
         /**
-         * @return an estimate of the non-ephemeral live set, in bytes.
+         * an estimate of the non-ephemeral live set, in bytes
+         * @return an estimate of the non-ephemeral live set, in bytes
          */
         public long getEstimatedLiveSet() {
             return localMinimum;
         }
 
         /**
-         * @return the current use level of the oldest generation, in bytes.
+         * the latest observed use level of the oldest generation, in bytes
+         * @return the latest observed use level of the oldest generation, in bytes
          */
         public long getCurrentUsed() {
             return currentUsed;
         }
 
         /**
-         * @return the maximum available capacity of the oldest generation, in bytes.
+         * the maximum available capacity of the oldest generation, in bytes
+         * @return the maximum available capacity of the oldest generation, in bytes
          */
         public long getMaxAvailable() {
             return maxAllowed;
@@ -224,21 +228,24 @@ public class HeapUseWatcher extends Thread {
     private final NonEphemeralHeapUseModel nonEphemeralHeapUseModel;
 
     /**
-     * @return an estimate of the non-ephemeral live set, in bytes.
+     * an estimate of the non-ephemeral live set, in bytes
+     * @return an estimate of the non-ephemeral live set, in bytes
      */
     public long getEstimatedLiveSet() {
         return nonEphemeralHeapUseModel.getEstimatedLiveSet();
     }
 
     /**
-     * @return the current use level of the oldest generation, in bytes.
+     * the latest observed maximum available capacity of the oldest generation, in bytes
+     * @return the latest observed use level of the oldest generation, in bytes
      */
     public long getCurrentUsed() {
         return nonEphemeralHeapUseModel.getCurrentUsed();
     }
 
     /**
-     * @return the maximum available capacity of the oldest generation, in bytes.
+     * the maximum available capacity of the oldest generation, in bytes
+     * @return the maximum available capacity of the oldest generation, in bytes
      */
     public long getMaxAvailable() {
         return nonEphemeralHeapUseModel.getMaxAvailable();
@@ -327,14 +334,14 @@ public class HeapUseWatcher extends Thread {
     }
 
     /**
-     * Constructs a HeapUseWatcher using command line argument strings
+     * constructs a HeapUseWatcher using command line argument strings
      *
      * Valid arguments include:
      * [-v] [-i pollingIntervalMsec] [-r reportingIntervalMsec]
      * [-e noiseFilteringLevelInMB] [-l logFileName]
      *
      * @param args  argument strings in command line arguments form
-     * @throws FileNotFoundException
+     * @throws FileNotFoundException If [optional] log file cannot be created
      */
     public HeapUseWatcher(final String[] args) throws FileNotFoundException {
         this(new HeapUseWatcherConfiguration(args));
@@ -344,15 +351,14 @@ public class HeapUseWatcher extends Thread {
     }
 
     /**
-     * Constructs a HeapUseWatcher using default parameters.
-     * @throws FileNotFoundException
+     * constructs a HeapUseWatcher using default parameters.
      */
     public HeapUseWatcher() {
         this(new HeapUseWatcherConfiguration(new String[]{}));
     }
 
     /**
-     * Get the model update polling interval
+     * set the model update polling interval
      * @return the polling interval in milliseconds
      */
     public long getPollingIntervalMsec() {
@@ -360,15 +366,17 @@ public class HeapUseWatcher extends Thread {
     }
 
     /**
-     * Set the model update polling interval
+     * set the model update polling interval
      * @param pollingIntervalMsec polling interval in milliseconds
+     * @return this
      */
-    public void setPollingIntervalMsec(long pollingIntervalMsec) {
+    public HeapUseWatcher setPollingIntervalMsec(long pollingIntervalMsec) {
         config.pollingIntervalMsec = pollingIntervalMsec;
+        return this;
     }
 
     /**
-     * Get the output reporting interval (0 means no output reporting)
+     * set the output reporting interval (0 means no output reporting)
      * @return the reporting interval in milliseconds
      */
     public long getReportingIntervalMsec() {
@@ -376,11 +384,13 @@ public class HeapUseWatcher extends Thread {
     }
 
     /**
-     * Set the output reporting interval (0 means no output reporting)
+     * set the output reporting interval (0 means no output reporting)
      * @param reportingIntervalMsec reporting interval in milliseconds
+     * @return this
      */
-    public void setReportingIntervalMsec(long reportingIntervalMsec) {
+    public HeapUseWatcher setReportingIntervalMsec(long reportingIntervalMsec) {
         config.reportingIntervalMsec = reportingIntervalMsec;
+        return this;
     }
 
 
@@ -395,16 +405,18 @@ public class HeapUseWatcher extends Thread {
     /**
      * set the the noise filtering level used in estimating live set
      * @param noiseFilteringLevelInMB the noise filtering level, in MB
+     * @return this
      */
-    public void setNoiseFilteringLevelInMB(double noiseFilteringLevelInMB) {
+    public HeapUseWatcher setNoiseFilteringLevelInMB(double noiseFilteringLevelInMB) {
         config.noiseFilteringLevelInMB = noiseFilteringLevelInMB;
         nonEphemeralHeapUseModel.setNoiseFilteringLevelInMB(noiseFilteringLevelInMB);
+        return this;
     }
 
     private volatile boolean doRun = true;
 
     /**
-     * Cause HeapUseWatcher thread to exit (asynchronously, at some point in the near future).
+     * cause HeapUseWatcher thread to exit (asynchronously, at some point in the near future).
      */
     public void terminate() {
         doRun = false;
@@ -412,6 +424,9 @@ public class HeapUseWatcher extends Thread {
 
     static private final double GB = 1024.0 * 1024.0 * 1024.0;
 
+    /**
+     * runs HeapUseWatcher logic, updating model at regular (configurable, defaults to 1 sec) intervals
+     */
     @Override
     public void run() {
         try {
@@ -474,16 +489,22 @@ public class HeapUseWatcher extends Thread {
         return heapUseMeter;
     }
 
-    public static void agentmain(String argsString, java.lang.instrument.Instrumentation inst) {
-        final String[] args = ((argsString != null) && !argsString.equals("")) ? argsString.split("[ ,;]+") : new String[0];
-        commonMain(args, false);
-    }
-
+    /**
+     * main method used when HeapUseWatcher is invoked as a javaagent
+     *
+     * e.g. java -javaagent:target/HeapUseWatcher.jar="-r 1000" -jar MyApp.jar
+     * @param argsString arguments (parsed same as from command line)
+     * @param inst provided by agent invocation logic
+     */
     public static void premain(String argsString, java.lang.instrument.Instrumentation inst) {
         final String[] args = ((argsString != null) && !argsString.equals("")) ? argsString.split("[ ,;]+") : new String[0];
         commonMain(args, true);
     }
 
+    /**
+     * main method used when HeapUseWatcher is invoked from command line
+     * @param args Command line arguments
+     */
     public static void main(final String[] args)  {
         final HeapUseWatcher heapUseWatcher = commonMain(args, true);
 
