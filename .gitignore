@@ -8,5 +8,6 @@ release.properties
 pom.xml.releaseBackup
 release-pom.xml
 *.iml
+*.jar
 .DS_Store
 build

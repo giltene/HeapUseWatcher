@@ -59,13 +59,13 @@ import java.util.concurrent.TimeUnit;
  * some simple filtering applied to avoid noise]. That's basically the simple thing
  * that HeapUseWatcher does.
  * </p><p>
- * The HeapUseWatcher jar and class provides multiple forms of use:
+ * The HeapUseWatcher jar and class supports multiple forms of use:
  * </p><p>
- * A. The runnable HeapUseWatcher class can be
+ * A. The runnable {@link HeapUseWatcher} class can be
  * launched and started as a thread, which will independently
  * maintain an updated model of the non-ephemeral heap use.
  * </p><p>
- * B. One can directly use HeapUseWatcher.NonEphemeralHeapUseModel
+ * B. One can directly use {@link HeapUseWatcher.NonEphemeralHeapUseModel}
  * and call its updateModel() method periodically to keep the model
  * up to date.
  * </p><p>

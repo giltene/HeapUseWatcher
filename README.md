@@ -49,17 +49,17 @@ this context is the lowest level observed between two other, higher levels, with
 some simple filtering applied to avoid noise]. That's basically the simple thing
 that HeapUseWatcher does.
 
-The HeapUseWatcher jar and class provides multiple forms of use:
+The HeapUseWatcher jar and class supports multiple forms of use:
 
-A. The runnable HeapUseWatcher class can be
+- The runnable HeapUseWatcher class can be
 launched and started as a thread, which will independently
 maintain an updated model of the non-ephemeral heap use.
 
-B. One can directly use HeapUseWatcher.NonEphemeralHeapUseModel
+- One can directly use HeapUseWatcher.NonEphemeralHeapUseModel
 and call its updateModel() method periodically to keep the model
 up to date.
 
-C. The jar file can be used as a java agent, to add optional
+- The jar file can be used as a java agent, to add optional
 reporting output to existing, unmodified applications.
 
 Example of use as a java agent:
