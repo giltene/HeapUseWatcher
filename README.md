@@ -24,25 +24,32 @@ so we don't count it until it happens.
 
 Establishing the current use level (as opposed to the live set) in the oldest
 generation is a relatively simple thing. But for many purposes, estimation of the
-live set would be more useful generally. Making logic choices purely on the
+live set would be much more useful. Making logic choices based purely on the
 currently observed level (which includes any promoted, now-dead objects that have
-not yet been identified or collected) can often lead to unwanted behavior, as
-logic may conservatively react to perceived use levels that are not real, and
-indicate a "full or nearly full" heap when plenty of (not yet reclaimed) room
-remains available.
+not yet been identified or collected) is usually "a bad idea", and can often lead
+to unwanted behavior, as logic may (and will) conservatively react to perceived
+use levels that are not real, and indicate a "full or nearly full" heap when
+plenty of (not yet reclaimed) room remains available.
 
 Live set estimation:
-Due to the current limitations of the spec'ed memory management bean APIs available in Java
-SE (up to and including Java SE 13), there is no current way to directly establish
-the "live set" in the oldest generation without use of platform-specific (non-spec'ed)
-MXBeans, which provide access to information about use levels before and after collection
-events. While using such MXBeans does provide additional and better insight into live-set
-levels, a portable approximation of the same can be achieved by watching the current use
-levels in the oldest generation, and reporting the most recent local minima observed as
-live set estimations [A local minimum in this context is the lowest level observed between
-two other, higher levels, with some simple filtering applied to avoid noise].
+Due to the current limitations of the spec'ed memory management bean APIs available
+in Java SE (up to and including Java SE 13), there is no current way to use those
+APIs to directly establish the "live set" in the oldest generation in a reliable
+manner, with logic that actually works across the various collectors out there and
+their possible configurations. Even when using platform-specific (non-spec'ed)
+MXBeans, the data being reported does not directly indicate the "live set" (e.g.
+G1GC after-collection usage is reported after every incremental mixed collection
+step, and not for the Oldgen as a whole, so it usually does not represent the
+live set).
 
-This class provides multiple forms of use:
+A portable, collector-independent approximation of the live set can be achieved
+by watching the current use levels in the oldest generation, and reporting the
+most recent local minima observed as live set estimations [A local minimum in
+this context is the lowest level observed between two other, higher levels, with
+some simple filtering applied to avoid noise]. That's basically the simple thing
+that HeapUseWatcher does.
+
+The HeapUseWatcher jar and class provides multiple forms of use:
 
 A. The runnable HeapUseWatcher class can be
 launched and started as a thread, which will independently
@@ -52,15 +59,16 @@ B. One can directly use HeapUseWatcher.NonEphemeralHeapUseModel
 and call its updateModel() method periodically to keep the model
 up to date.
 
-C. The class can be used as java agent, to add optional
+C. The jar file can be used as java agent, to add optional
 reporting output to existing, unmodified applications.
 
 Example of use as a java agent:
 ----
-An exmple of using HeapUseWatcher as a java agent (it is used to
-monitor heap use and live set in a [HeapFragger](https://github.com/giltene/HeapFragger)
-run. HeapFragger which is a simple active excercizer of the heap and
-presents a nice moving target for HeapUseWatcher to track):
+Here is a simple example of using HeapUseWatcher as a java agent (here, it is
+used to monitor heap use and live set in a 
+[HeapFragger](https://github.com/giltene/HeapFragger) run. HeapFragger
+is a simple active excercizer of the heap and presents a nice movingt
+arget for a HeapUseWatcher agent to track and report on):
 
 ````
 % java -Xmx1500m -XX:+UseG1GC -javaagent:HeapUseWatcher.jar="-r 1000" -jar HeapFragger.jar -a 3000 -s 500

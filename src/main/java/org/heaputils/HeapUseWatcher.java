@@ -35,25 +35,32 @@ import java.util.concurrent.TimeUnit;
  *
  * Establishing the current use level (as opposed to the live set) in the oldest
  * generation is a relatively simple thing. But for many purposes, estimation of the
- * live set would be more useful generally. Making logic choices purely on the
+ * live set would be much more useful. Making logic choices based purely on the
  * currently observed level (which includes any promoted, now-dead objects that have
- * not yet been identified or collected) can often lead to unwanted behavior, as
- * logic may conservatively react to perceived use levels that are not real, and
- * indicate a "full or nearly full" heap when plenty of (not yet reclaimed) room
- * remains available.
+ * not yet been identified or collected) is usually "a bad idea", and can often lead
+ * to unwanted behavior, as logic may (and will) conservatively react to perceived
+ * use levels that are not real, and indicate a "full or nearly full" heap when
+ * plenty of (not yet reclaimed) room remains available.
  *
  * Live set estimation:
- * Due to the current limitations of the spec'ed memory management bean APIs available in Java
- * SE (up to and including Java SE 13), there is no current way to directly establish
- * the "live set" in the oldest generation without use of platform-specific (non-spec'ed)
- * MXBeans, which provide access to information about use levels before and after collection
- * events. While using such MXBeans does provide additional and better insight into live-set
- * levels, a portable approximation of the same can be achieved by watching the current use
- * levels in the oldest generation, and reporting the most recent local minima observed as
- * live set estimations [A local minimum in this context is the lowest level observed between
- * two other, higher levels, with some simple filtering applied to avoid noise].
+ * Due to the current limitations of the spec'ed memory management bean APIs available
+ * in Java SE (up to and including Java SE 13), there is no current way to use those
+ * APIs to directly establish the "live set" in the oldest generation in a reliable
+ * manner, with logic that actually works across the various collectors out there and
+ * their possible configurations. Even when using platform-specific (non-spec'ed)
+ * MXBeans, the data being reported does not directly indicate the "live set" (e.g.
+ * G1GC after-collection usage is reported after every incremental mixed collection
+ * step, and not for the Oldgen as a whole, so it usually does not represent the
+ * live set).
  *
- * This class provides multiple forms of use:
+ * A portable, collector-independent approximation of the live set can be achieved
+ * by watching the current use levels in the oldest generation, and reporting the
+ * most recent local minima observed as live set estimations [A local minimum in
+ * this context is the lowest level observed between two other, higher levels, with
+ * some simple filtering applied to avoid noise]. That's basically the simple thing
+ * that HeapUseWatcher does.
+ *
+ * The HeapUseWatcher jar and class provides multiple forms of use:
  *
  * A. The runnable HeapUseWatcher class can be
  * launched and started as a thread, which will independently
@@ -63,7 +70,7 @@ import java.util.concurrent.TimeUnit;
  * and call its updateModel() method periodically to keep the model
  * up to date.
  *
- * C. The class can be used as java agent, to add optional
+ * C. The jar file can be used as java agent, to add optional
  * reporting output to existing, unmodified applications.
  */
 
@@ -188,7 +195,7 @@ public class HeapUseWatcher extends Thread {
 
         /**
          * Update the model.
-         * This model requires regular periodic callsto the updateModel()
+         * This model requires regular periodic calls to the updateModel()
          * method in order to work. The model update intervals should be
          * chosen to be short enough to be a fraction of the typical
          * start-to-start interval between oldest-generation collections.
@@ -211,7 +218,6 @@ public class HeapUseWatcher extends Thread {
                 previousValue = currentUsed;
                 previousDelta = (delta != 0) ? delta : previousDelta;
             }
-
         }
     }
 
@@ -251,6 +257,7 @@ public class HeapUseWatcher extends Thread {
         String logFileName;
 
         boolean error = false;
+        boolean help = false;
         String errorMessage = "";
 
         private HeapUseWatcherConfiguration(final String[] args) {
@@ -266,6 +273,8 @@ public class HeapUseWatcher extends Thread {
                         noiseFilteringLevelInMB = Double.parseDouble(args[++i]);   // lgtm [java/index-out-of-bounds]
                     } else if (args[i].equals("-l")) {
                         logFileName = args[++i];                            // lgtm [java/index-out-of-bounds]
+                    } else if (args[i].equals("-h")) {
+                        error = help = true;                                        // lgtm [java/index-out-of-bounds]
                     } else {
                         throw new Exception("Invalid args: " + args[i]);
                     }
@@ -288,12 +297,14 @@ public class HeapUseWatcher extends Thread {
                 errorMessage += "\nWhich was parsed as an error, indicated by the following exception:\n" + e;
 
                 System.err.println(errorMessage);
+            }
 
+            if (error || help) {
                 String validArgs =
-                        "\"[-v] [-i pollingIntervalMsec] [-r reportingIntervalMsec] " +
-                " [-e noiseFilteringLevelInMB] [-l logFileName]\"\n";
+                        "[-v] [-i pollingIntervalMsec] [-r reportingIntervalMsec] "
+                                +  " [-e noiseFilteringLevelInMB] [-l logFileName]\n";
 
-                System.err.println("valid arguments = " + validArgs);
+                System.err.println("valid arguments:\n" + validArgs);
 
                 System.err.println(
                         " [-h]                          help\n" +
