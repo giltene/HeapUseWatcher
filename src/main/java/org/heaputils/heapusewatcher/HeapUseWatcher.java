@@ -168,6 +168,7 @@ public class HeapUseWatcher extends Thread {
         private long currentUsed;
 
         private long localMinimum = 0;
+        private long timeLastLocalMinimumWasObserved = System.currentTimeMillis();
 
         /**
          * an estimate of the non-ephemeral live set, in bytes
@@ -193,6 +194,13 @@ public class HeapUseWatcher extends Thread {
             return maxAllowed;
         }
 
+        /**
+         * the time (in milliseconds) since the last change in estimated live set level
+         * @return the time (in milliseconds) since the last change in estimated live set level
+         */
+        public long getTimeSinceLastEstimatedLiveSetChange() {
+            return System.currentTimeMillis() - timeLastLocalMinimumWasObserved;
+        }
 
         private long previousValue = 0;
         private long previousDelta = 0;
@@ -217,6 +225,7 @@ public class HeapUseWatcher extends Thread {
                 if (delta > 0) {
                     if (previousDelta < 0) {
                         localMinimum = previousValue;
+                        timeLastLocalMinimumWasObserved = System.currentTimeMillis();
                     }
                 }
                 previousValue = currentUsed;
@@ -249,6 +258,14 @@ public class HeapUseWatcher extends Thread {
      */
     public long getMaxAvailable() {
         return nonEphemeralHeapUseModel.getMaxAvailable();
+    }
+
+    /**
+     * the time (in milliseconds) since the last change in estimated live set level
+     * @return the time (in milliseconds) since the last change in estimated live set level
+     */
+    public long getTimeSinceLastEstimatedLiveSetChange() {
+        return nonEphemeralHeapUseModel.getTimeSinceLastEstimatedLiveSetChange();
     }
 
     private final HeapUseWatcherConfiguration config;
@@ -368,7 +385,7 @@ public class HeapUseWatcher extends Thread {
     /**
      * set the model update polling interval
      * @param pollingIntervalMsec polling interval in milliseconds
-     * @return this
+     * @return this HeapUseWatcher instance
      */
     public HeapUseWatcher setPollingIntervalMsec(long pollingIntervalMsec) {
         config.pollingIntervalMsec = pollingIntervalMsec;
@@ -386,7 +403,7 @@ public class HeapUseWatcher extends Thread {
     /**
      * set the output reporting interval (0 means no output reporting)
      * @param reportingIntervalMsec reporting interval in milliseconds
-     * @return this
+     * @return this HeapUseWatcher instance
      */
     public HeapUseWatcher setReportingIntervalMsec(long reportingIntervalMsec) {
         config.reportingIntervalMsec = reportingIntervalMsec;
@@ -405,7 +422,7 @@ public class HeapUseWatcher extends Thread {
     /**
      * set the the noise filtering level used in estimating live set
      * @param noiseFilteringLevelInMB the noise filtering level, in MB
-     * @return this
+     * @return this HeapUseWatcher instance
      */
     public HeapUseWatcher setNoiseFilteringLevelInMB(double noiseFilteringLevelInMB) {
         config.noiseFilteringLevelInMB = noiseFilteringLevelInMB;
@@ -425,7 +442,7 @@ public class HeapUseWatcher extends Thread {
     static private final double GB = 1024.0 * 1024.0 * 1024.0;
 
     /**
-     * runs HeapUseWatcher logic, updating model at regular (configurable, defaults to 1 sec) intervals
+     * Thread's run method: runs HeapUseWatcher logic, updating model at configured polling intervals
      */
     @Override
     public void run() {
@@ -444,8 +461,9 @@ public class HeapUseWatcher extends Thread {
 
                 long now = System.currentTimeMillis();
                 if ((config.reportingIntervalMsec != 0) && (now >= nextReportingTime)) {
-                    log.printf("CurrentUsed = %.3fGB, MaxAllowed = %.3fGB, EstimatedLiveSet = %.3fGB\n",
-                            getCurrentUsed()/GB, getMaxAvailable()/GB, getEstimatedLiveSet()/GB);
+                    log.printf("CurrentUsed = %.3fGB, MaxAllowed = %.3fGB, EstimatedLiveSet = %.3fGB (%.3f seconds ago)\n",
+                            getCurrentUsed()/GB, getMaxAvailable()/GB, getEstimatedLiveSet()/GB,
+                            getTimeSinceLastEstimatedLiveSetChange() / 1000.0);
                     nextReportingTime = now + (long)config.reportingIntervalMsec;
                 }
             }
