@@ -1,5 +1,7 @@
 HeapUseWatcher
 ===========
+[![Javadocs](http://www.javadoc.io/badge/org.heaputils/HeapUseTracker.svg)](http://www.javadoc.io/doc/org.heaputils/HeapUseTracker)
+
 
 A simple tracker of non-ephemeral heap use and live set levels, which may be useful
 for making application logic decisions that react to heap occupancy (in e.g. choosing
