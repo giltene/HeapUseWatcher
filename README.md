@@ -1,6 +1,8 @@
 HeapUseWatcher
 ===========
 [![Javadocs](http://www.javadoc.io/badge/org.heaputils/HeapUseTracker.svg)](http://www.javadoc.io/doc/org.heaputils/HeapUseTracker)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/giltene/HeapUseWatcher.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/giltene/HeapUseWatcher/alerts/)
+[![Language grade: Java](https://img.shields.io/lgtm/grade/java/g/giltene/HeapUseWatcher.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/giltene/HeapUseWatcher/context:java)
 
 
 A simple tracker of non-ephemeral heap use and live set levels, which may be useful
