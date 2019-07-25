@@ -1,6 +1,6 @@
 HeapUseWatcher
 ===========
-[![Javadocs](http://www.javadoc.io/badge/org.heaputils/HeapUseTracker.svg)](http://www.javadoc.io/doc/org.heaputils/HeapUseTracker)
+[Javadoc](https://javadoc.jitpack.io/com/github/giltene/HeapUseWatcher/1.0.1/javadoc/)
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/giltene/HeapUseWatcher.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/giltene/HeapUseWatcher/alerts/)
 [![Language grade: Java](https://img.shields.io/lgtm/grade/java/g/giltene/HeapUseWatcher.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/giltene/HeapUseWatcher/context:java)
 
@@ -146,3 +146,6 @@ if (((double) liveSet)/maxAvalaible > triggeringThreasholdFraction) {
     doWhatYouNeedToDo();
 }
 ````
+
+
+[![Javadocs](http://www.javadoc.io/badge/org.heaputils/HeapUseTracker.svg)](http://www.javadoc.io/doc/org.heaputils/HeapUseTracker)
